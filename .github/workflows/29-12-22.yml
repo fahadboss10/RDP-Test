@@ -29,4 +29,4 @@ jobs:
         echo $ngrok_tcp_endpoint
         echo "##[set-output name=ngrok_tcp_endpoint;]$ngrok_tcp_endpoint"
     - name: Print ngrok endpoint
-      run: echo "ngrok TCP endpoint: ${{ steps.step-name.outputs.ngrok_tcp_endpoint }}"
+      run: echo "ngrok TCP endpoint: ${{ steps.step_name.outputs.ngrok_tcp_endpoint }}"
