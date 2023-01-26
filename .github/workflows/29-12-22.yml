@@ -1,25 +1,32 @@
-name: CI
-
-on: [push, workflow_dispatch]
-
 jobs:
   build:
-
     runs-on: windows-latest
-
     steps:
-    - name: Download
+    - name: Download ngrok
       run: Invoke-WebRequest https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-windows-amd64.zip -OutFile ngrok.zip
-    - name: Extract
+    - name: Extract ngrok
       run: Expand-Archive ngrok.zip
-    - name: Auth
+    - name: Auth ngrok
       run: .\ngrok\ngrok.exe authtoken $Env:NGROK_AUTH_TOKEN
       env:
         NGROK_AUTH_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
-    - name: Enable TS
+    - name: Enable Remote Desktop
       run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server'-name "fDenyTSConnections" -Value 0
-    - run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
-    - run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
-    - run: Set-LocalUser -Name "runneradmin" -Password (ConvertTo-SecureString -AsPlainText "P@ssw0rd!" -Force)
+    - name: Enable Firewall
+      run: Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+    - name: Set User Authentication
+      run: Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -name "UserAuthentication" -Value 1
+    - name: Create User
+      run: net user runneradmin P@ssw0rd! /add
     - name: Create Tunnel
       run: .\ngrok\ngrok.exe tcp 3389
+    - name: Inspect ngrok logs
+      run: .\ngrok\ngrok.exe inspect --inspect-ngrok-log=true > ngrok.log
+    - name: Extract ngrok endpoint
+      run: |
+        $ngrok_output = Get-Content ngrok.log
+        $ngrok_tcp_endpoint = $ngrok_output | Select-String -Pattern "tcp.*"
+        echo $ngrok_tcp_endpoint
+        echo "##[set-output name=ngrok_tcp_endpoint;]$ngrok_tcp_endpoint"
+    - name: Print ngrok endpoint
+      run: echo "ngrok TCP endpoint: ${{ steps.step-name.outputs.ngrok_tcp_endpoint }}"
